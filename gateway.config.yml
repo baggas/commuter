@@ -1,0 +1,91 @@
+http:
+  port: 8080
+  hostname: '192.168.9.175'
+apiEndpoints:
+  sapAPI:
+    host: '192.168.9.175'
+    paths: '/Items'
+  glideAPI:
+    host: '192.168.9.23'
+    paths:
+      - '/User/*'
+      - '/Login/*'
+      - '/ActivityDashboard/*'
+      - '/Activity/*'
+    methods: ["GET", "POST"]
+  streamLineAPI:
+    host: '192.168.9.23'
+    paths:
+      - '*'
+serviceEndpoints:
+  sapService:
+    url: https://sandbox.api.sap.com/sapb1/b1s/v2
+  glideService:
+    url: 'http://apuat.petroit.com/api'
+  streamlineService:
+    url: 'http://qarapid.petroit.com/StreamlineBusinessService/Services/Dashboard/DashboardService.svc/'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+pipelines:
+  - name: sap
+    apiEndpoints:
+      - sapAPI
+    policies:
+      - log: # policy name
+          - action:    # array of condition/actions objects
+              message: ${req.method} ${req.originalUrl} # parameter for log action
+      - rate-limit:
+          - action:                         # allow
+              max: 10                       # max 10 request -1 to diable the api
+              windowMs: 1000              # per 1 seconds      
+              message: 'API is not avaliable'    
+              statusCode: 404      
+      - expression:
+          - action:
+              jscode: >
+                  req.headers.APIKey = 'YylgC7bGBaD5rVYNXEIejGJnr04fAHHT';
+      - proxy:
+          - action:
+              serviceEndpoint: sapService
+              changeOrigin: true
+  - name: glide          
+    apiEndpoints:
+      - glideAPI
+    policies:
+      - log: # policy name
+          - action:    # array of condition/actions objects
+              message: ${req.method} ${req.originalUrl} # parameter for log action
+      - rate-limit:
+          - action:                         # allow
+              max: 10                       # max 10 request -1 to diable the api
+              windowMs: 1000              # per 1 seconds      
+              message: 'API is not avaliable' 
+              statusCode: 404         
+      - proxy:
+          - action:
+              serviceEndpoint: glideService
+              changeOrigin: true          
+  - name: streamLine          
+    apiEndpoints:
+      - streamLineAPI
+    policies:
+      - log: # policy name
+          - action:    # array of condition/actions objects
+              message: ${req.method} ${req.originalUrl} # parameter for log action
+      - rate-limit:
+          - action:                         # allow
+              max: 10                       # max 10 request -1 to diable the api
+              windowMs: 1000              # per 1 seconds      
+              message: 'API is not avaliable'  
+              statusCode: 404
+      - proxy:
+          - action:
+              serviceEndpoint: streamlineService
+              changeOrigin: true
